@@ -10,6 +10,7 @@ import xarray as xr
 from scipy.stats.distributions import chi2
 from itertools import combinations
 
+
 # %% Auxiliar functions
 def get_scores(y_true, y_pred, score_fun):
     nclasses = np.shape(y_true)[1]
@@ -40,9 +41,10 @@ def get_optimal_precision_recall(y_true, y_score):
         index = np.argmax(f1_score)
         opt_precision.append(precision[index])
         opt_recall.append(recall[index])
-        t = threshold[index-1] if index != 0 else threshold[0]-1e-10
+        t = threshold[index - 1] if index != 0 else threshold[0] - 1e-10
         opt_threshold.append(t)
     return np.array(opt_precision), np.array(opt_recall), np.array(opt_threshold)
+
 
 def affer_results(y_true, y_pred):
     """Return true positives, false positives, true negatives, false negatives.
@@ -101,13 +103,12 @@ y_cardio = pd.read_csv('./data/csv_files/cardiology_residents.csv').values
 y_emerg = pd.read_csv('./data/csv_files/emergency_residents.csv').values
 y_student = pd.read_csv('./data/csv_files/medical_students.csv').values
 # get y_score for different models
-y_score_list = [np.load('./dnn_predicts/other_seeds/model_' + str(i+1) + '.npy') for i in range(10)]
-
+y_score_list = [np.load('./dnn_predicts/other_seeds/model_' + str(i + 1) + '.npy') for i in range(10)]
 
 # %% Get average model model
 # Get micro average precision
 micro_avg_precision = [average_precision_score(y_true[:, :6], y_score[:, :6], average='micro')
-                           for y_score in y_score_list]
+                       for y_score in y_score_list]
 # get ordered index
 index = np.argsort(micro_avg_precision)
 print('Micro average precision')
@@ -123,7 +124,6 @@ mask = y_score_best > threshold
 y_neuralnet = np.zeros_like(y_score_best)
 y_neuralnet[mask] = 1
 y_neuralnet[mask] = 1
-
 
 # %% Generate table with scores for the average model (Table 2)
 scores_list = []
@@ -142,7 +142,6 @@ scores_all_df = scores_all_df.reindex(level=0, columns=score_fun.keys())
 # Save results
 scores_all_df.to_excel("./outputs/tables/scores.xlsx", float_format='%.3f')
 scores_all_df.to_csv("./outputs/tables/scores.csv", float_format='%.3f')
-
 
 # %% Plot precision recall curves (Figure 2)
 for k, name in enumerate(diagnosis):
@@ -229,8 +228,7 @@ confusion_matrices = confusion_matrices['n']
 confusion_matrices.to_excel("./outputs/tables/confusion matrices.xlsx", float_format='%.3f')
 confusion_matrices.to_csv("./outputs/tables/confusion matrices.csv", float_format='%.3f')
 
-
-#%% Compute scores and bootstraped version of these scores
+# %% Compute scores and bootstraped version of these scores
 
 bootstrap_nsamples = 1000
 percentiles = [2.5, 97.5]
@@ -270,16 +268,15 @@ scores_percentiles_all_df = pd.concat(scores_percentiles_list, axis=1, keys=pred
 scores_percentiles_all_df = scores_percentiles_all_df.reorder_levels([1, 0, 2], axis=1)
 scores_percentiles_all_df = scores_percentiles_all_df.reindex(level=0, columns=score_fun.keys())
 
-
-#%% Print box plot (Supplementary Figure 1)
+# %% Print box plot (Supplementary Figure 1)
 # Convert to xarray
 scores_resampled_xr = xr.DataArray(np.array(scores_resampled_list),
                                    dims=['predictor', 'n', 'diagnosis', 'score_fun'],
                                    coords={
-                                    'predictor': predictor_names,
-                                    'n': range(bootstrap_nsamples),
-                                    'diagnosis': ['1dAVb', 'RBBB', 'LBBB', 'SB', 'AF', 'ST'],
-                                    'score_fun': list(score_fun.keys())})
+                                       'predictor': predictor_names,
+                                       'n': range(bootstrap_nsamples),
+                                       'diagnosis': ['1dAVb', 'RBBB', 'LBBB', 'SB', 'AF', 'ST'],
+                                       'score_fun': list(score_fun.keys())})
 # Remove everything except f1_score
 for sf in score_fun:
     fig, ax = plt.subplots()
@@ -300,10 +297,9 @@ for sf in score_fun:
     plt.tight_layout()
     plt.savefig('./outputs/figures/boxplot_bootstrap_{}.pdf'.format(sf))
 
-
 scores_resampled_xr.to_dataframe(name='score').to_csv('./outputs/figures/boxplot_bootstrap_data.txt')
 
-#%% McNemar test  (Supplementary Table 3)
+# %% McNemar test  (Supplementary Table 3)
 # Get correct and wrong predictions for each of them (cm >= 2 correspond to wrong predictions)
 wrong_predictions = np.array([affer_results(y_true, y_pred)[4] >= 2
                               for y_pred in [y_neuralnet, y_cardio, y_emerg, y_student]])
@@ -314,7 +310,7 @@ mcnemar_name = []
 mcnemar_score = np.empty((6, 6))
 k = 0
 for i in range(4):
-    for j in range(i+1, 4):
+    for j in range(i + 1, 4):
         a_not_b = np.sum(wrong_predictions[i, :, :] & ~wrong_predictions[j, :, :], axis=0)
         b_not_a = np.sum(~wrong_predictions[i, :, :] & wrong_predictions[j, :, :], axis=0)
         # An alterantive to the standard McNemar test is to include a
@@ -326,7 +322,7 @@ for i in range(4):
         k += 1
         mcnemar_name += [names[i] + " vs " + names[j]]
 
-mcnemar = pd.DataFrame(1-chi2.cdf(mcnemar_score, 1), index=mcnemar_name, columns=diagnosis) # p-value
+mcnemar = pd.DataFrame(1 - chi2.cdf(mcnemar_score, 1), index=mcnemar_name, columns=diagnosis)  # p-value
 
 # Save results
 mcnemar.to_excel("./outputs/tables/mcnemar.xlsx", float_format='%.3f')
@@ -340,7 +336,7 @@ kappa_name = []
 kappa_score = np.empty((6, 6))
 k = 0
 for i in range(4):
-    for j in range(i+1, 4):
+    for j in range(i + 1, 4):
         y_pred_1 = predictors[i]
         y_pred_2 = predictors[j]
         # Get "confusion matrix"
@@ -354,9 +350,9 @@ for i in range(4):
         # Relative agreement
         r_agree = (p_p + n_n) / total_sum
         # Empirical probability of both saying yes
-        p_yes = (p_p + p_n) * (p_p + n_p) / total_sum**2
+        p_yes = (p_p + p_n) * (p_p + n_p) / total_sum ** 2
         # Empirical probability of both saying no
-        p_no = (n_n + n_p) * (n_n + p_n) / total_sum**2
+        p_no = (n_n + n_p) * (n_n + p_n) / total_sum ** 2
         # Empirical probability of agreement
         p_agree = p_yes + p_no
         # Kappa score
@@ -369,7 +365,6 @@ kappa = pd.DataFrame(kappa_score, index=kappa_name, columns=diagnosis)  # p-valu
 # Save results
 kappa.to_excel("./outputs/tables/kappa.xlsx", float_format='%.3f')
 kappa.to_csv("./outputs/tables/kappa.csv", float_format='%.3f')
-
 
 # %% Kappa score dataset generation (Supplementary Table 2(b))
 
@@ -413,7 +408,8 @@ for name in ['normal_order', 'date_order', 'individual_patients', 'base_model']:
     print(name)
     # Get data
     yn_true = y_true
-    yn_score = np.load('./dnn_predicts/other_splits/model_'+name+'.npy') if not name == 'base_model' else y_score_best
+    yn_score = np.load(
+        './dnn_predicts/other_splits/model_' + name + '.npy') if not name == 'base_model' else y_score_best
     # Compute threshold
     nclasses = np.shape(yn_true)[1]
     opt_precision, opt_recall, threshold = get_optimal_precision_recall(yn_true, yn_score)
@@ -452,10 +448,10 @@ for name in ['normal_order', 'date_order', 'individual_patients', 'base_model']:
 scores_resampled_xr = xr.DataArray(np.array(scores_resampled_list),
                                    dims=['predictor', 'n', 'diagnosis', 'score_fun'],
                                    coords={
-                                    'predictor': ['random', 'by date', 'by patient', 'original DNN'],
-                                    'n': range(bootstrap_nsamples),
-                                    'diagnosis': ['1dAVb', 'RBBB', 'LBBB', 'SB', 'AF', 'ST'],
-                                    'score_fun': list(score_fun.keys())})
+                                       'predictor': ['random', 'by date', 'by patient', 'original DNN'],
+                                       'n': range(bootstrap_nsamples),
+                                       'diagnosis': ['1dAVb', 'RBBB', 'LBBB', 'SB', 'AF', 'ST'],
+                                       'score_fun': list(score_fun.keys())})
 # Remove everything except f1_score
 sf = 'F1 score'
 fig, ax = plt.subplots()
